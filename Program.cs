@@ -50,6 +50,7 @@ foreach (var file in files)
         table.AddColumn("Embedovan");
         table.AddColumn("Subset");
         table.AddColumn("Strane");
+		table.AddColumn("Neugrađen na stranama");
 
         var missing = new List<string>();
 
@@ -76,8 +77,15 @@ foreach (var file in files)
             var pageText = string.Join(", ", pages.Take(10))
                            + (pages.Count > 10 ? $" … (+{pages.Count - 10})" : "");
 
+            var missingPages = g.Where(u => u.Status == FontStatus.NotEmbedded)
+                                .Select(u => u.Page).Distinct().OrderBy(p => p).ToList();
+            var missingText = missingPages.Count == 0
+                ? "[grey]-[/]"
+                : "[red]" + string.Join(", ", missingPages.Take(10))
+                  + (missingPages.Count > 10 ? $" … (+{missingPages.Count - 10})" : "") + "[/]";
+
             table.AddRow(Markup.Escape(g.Key), Markup.Escape(type), statusText,
-                         isSubset ? "da" : "[grey]ne[/]", pageText);
+                         isSubset ? "da" : "[grey]ne[/]", pageText, missingText);
         }
 
         AnsiConsole.Write(table);
