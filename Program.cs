@@ -68,6 +68,7 @@ foreach (var file in files)
             FontStatus status =
                 g.Any(u => u.Status == FontStatus.NotEmbedded) ? FontStatus.NotEmbedded :
                 g.Any(u => u.Status == FontStatus.Type3) ? FontStatus.Type3 :
+                g.Any(u => u.Status == FontStatus.Standard) ? FontStatus.Standard :
                 FontStatus.Embedded;
 
             if (status == FontStatus.NotEmbedded) missing.Add(g.Key);
@@ -76,6 +77,7 @@ foreach (var file in files)
             {
                 FontStatus.Embedded => "[green]DA[/]",
                 FontStatus.NotEmbedded => "[bold red]NE[/]",
+                FontStatus.Standard => "[yellow]Standardni[/]",
                 _ => "[yellow]Type3[/]"
             };
 
@@ -103,7 +105,7 @@ foreach (var file in files)
         }
         else
         {
-            AnsiConsole.MarkupLine($"[green]Svi fontovi su ugrađeni[/] (ukupno: {groups.Count}).");
+            AnsiConsole.MarkupLine($"[green]Nema neugrađenih fontova[/] (ukupno: {groups.Count}).");
         }
     }
     catch (Exception ex)
@@ -126,12 +128,20 @@ if (!Console.IsInputRedirected)
     Console.ReadKey(true);
 }
 
-enum FontStatus { Embedded, NotEmbedded, Type3 }
+enum FontStatus { Embedded, NotEmbedded, Type3, Standard }
 
 record FontUse(int Page, string BaseFont, string Subtype, FontStatus Status);
 
 static class FontScanner
 {
+    static readonly HashSet<string> StandardFonts = new()
+    {
+        "Helvetica", "Helvetica-Bold", "Helvetica-Oblique", "Helvetica-BoldOblique",
+        "Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic",
+        "Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique",
+        "Symbol", "ZapfDingbats"
+    };
+
     public static List<FontUse> Scan(PdfDocument doc)
     {
         var result = new List<FontUse>();
@@ -185,6 +195,7 @@ static class FontScanner
                           descriptor.Data.ContainsKey("FontFile2") ||
                           descriptor.Data.ContainsKey("FontFile3")))
                     status = FontStatus.Embedded;
+                else if (StandardFonts.Contains(baseFont)) status = FontStatus.Standard;
                 else status = FontStatus.NotEmbedded;
 
                 result.Add(new FontUse(page.Number, baseFont, subtype, status));
