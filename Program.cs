@@ -5,20 +5,25 @@ using UglyToad.PdfPig.Tokens;
 
 var subsetPrefix = new Regex("^[A-Z]{6}\\+", RegexOptions.Compiled);
 
-string input = args.Length > 0
-    ? args[0]
-    : AnsiConsole.Ask<string>("Prevuci PDF ili folder ovde, ili upiši putanju:");
-input = input.Trim().Trim('"');
+var inputs = args.Length > 0
+    ? args.Select(a => a.Trim().Trim('"')).Where(a => a.Length > 0).ToList()
+    : new List<string> { AnsiConsole.Ask<string>("Prevuci PDF ili folder ovde, ili upiši putanju:").Trim().Trim('"') };
 
-List<string> files;
-if (Directory.Exists(input))
-    files = Directory.EnumerateFiles(input, "*.pdf", SearchOption.AllDirectories)
-                     .OrderBy(f => f).ToList();
-else if (File.Exists(input))
-    files = new List<string> { input };
-else
+var files = new List<string>();
+foreach (var i in inputs)
 {
-    AnsiConsole.MarkupLine("[red]Putanja ne postoji.[/]");
+    if (Directory.Exists(i))
+        files.AddRange(Directory.EnumerateFiles(i, "*.pdf", SearchOption.AllDirectories).OrderBy(f => f));
+    else if (File.Exists(i))
+        files.Add(i);
+    else
+        AnsiConsole.MarkupLine($"[red]Putanja ne postoji:[/] {Markup.Escape(i)}");
+}
+files = files.Distinct().ToList();
+
+if (files.Count == 0)
+{
+    AnsiConsole.MarkupLine("[red]Nema PDF fajlova za proveru.[/]");
     return;
 }
 
